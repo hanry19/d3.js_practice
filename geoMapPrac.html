@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        .OUTLINE {
+            stroke-linejoin: round;
+            stroke: #ffffff;
+            stroke-width: 1;
+        }
+
+    </style>
+    <title>Title</title>
+
+    <!-- d3 lib load -->
+    <script src="./js/d3_lib/d3/d3.min.js"></script>
+    <script src="./js/d3_lib/d3-array/d3-array.min.js"></script>
+    <script src="./js/d3_lib/d3-geo/d3-geo.min.js"></script>
+    <script src="./js/d3_lib/d3-geo-projection/d3-geo-projection.min.js"></script>
+
+    <!-- 따릉이 데이터 -->
+    <script src="./data/geoData/cycle_loca.js"></script>
+</head>
+<body>
+
+
+<div id="main" style="width: 100%; height: 100vh"></div>
+
+</body>
+
+<script>
+/**
+ *
+ * description : 서울시 geojson & 따릉이 위치 데이터를 이용한 d3 활용
+ *
+ * */
+
+    /**
+     * 1. 서울시 그릴 svg 생성
+     * */
+
+
+    const svg = d3.select('#main')
+        .append('svg').attr('id', 'maps')
+        .style("width", "100%")
+        .style("height", "100%")
+        .style("position", "absolute")
+        .style("background-color", "rgb(164, 204, 239)");
+
+
+    const width = document.getElementById('maps').clientWidth;
+    const height = document.getElementById('maps').clientHeight;
+
+    /* 랜덤 색상 얻기 */
+    const getColor = () => '#' + Math.round(Math.random() * 0xffffff).toString(16)
+
+
+    // 투영법 (projection) 설정
+    const projection = d3.geoMercator()
+        .center([126.9717937, 37.5518911])
+        .scale(100000)
+        .translate([width / 2, height / 2]);
+
+    const geoPath = d3.geoPath().projection(projection);
+
+
+    // 서울시 지리 데이터 load
+    d3.json('./data/geoData/seoul.geojson').then((data) => {
+        d3.select('#maps')
+            .selectAll('path')
+            // .data(console.log(data.features))
+            .data(data.features)
+            .enter()
+            .append('path')
+            .attr('fill', '#FAFAFA')
+            .attr('d', geoPath)
+            .attr('class', 'OUTLINE')
+            .style("stroke", "#EAEAEA")
+    })
+
+
+    /**
+     * 2. 따릉이 위치 및 개수 표츌 로직
+     * */
+    const gu_list = [...new Set(cycleData.flatMap(e => e.sgg))]
+
+
+    /**
+     *  2.1 서울시 구별 정류소 개수 계산 로직
+     * */
+    let getLocaQty = [];
+    gu_list.forEach(sgg => {
+
+        let [qty_acc, cnt, lat_avg, lng_avg] = [0, 0, 0, 0];
+
+        cycleData.forEach(el => {
+            if (el.sgg === sgg) {
+                qty_acc++;
+                cnt++;
+                lat_avg += el.lat;
+                lng_avg += el.lng;
+            }
+        })
+        getLocaQty.push({sgg, qty: qty_acc, lat: lat_avg / cnt, lng: lng_avg / cnt});
+    })
+
+
+    /**
+     * 2.2 따릉이 표츌 svg 생성
+     * */
+
+
+    // showAllLocation(cycleData);
+    showLocaSummary(getLocaQty);
+
+
+    /**
+     *
+     * # function 1 : 서울시 따릉이 갯수 구단위 요약
+     *
+     * */
+    function showLocaSummary(data) {
+        const cycle_svg = d3.select('#main')
+            .append('svg')
+            .attr('id', 'cycle_loca_summary')
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .style("position", "absolute")
+
+        const cycle_loca = cycle_svg.selectAll('g')
+            .data(data)
+            // .data(cycleData)
+            .enter()
+            .append('g')
+
+        cycle_loca.append('circle')
+            .attr('fill', d => getColor())
+            .attr('r', 6)
+            .attr('cx', d => projection([d.lng, d.lat])[0])
+            .attr('cy', d => projection([d.lng, d.lat])[1])
+            .on("click", d => {
+                alert(`${d.sgg}에는 따릉이 정류소가 ${d.qty}개 있습니다.`)
+                showSelectedLoca(d.sgg)
+            });
+
+        cycle_loca.append('text')
+            .text(d => `${d.sgg} : ${d.qty}개`)
+            .attr('x', d => projection([d.lng, d.lat])[0] - 12)
+            .attr('y', d => projection([d.lng, d.lat])[1] - 10)
+            .style('font-size', '10px')
+    }
+
+    /**
+     *
+     * # function 2 : 서울 시 모든 따릉이 위치 표시
+     *
+     * */
+    function showAllLocation(data) {
+        const cycle_svg = d3.select('#main')
+            .insert('svg','#cycle_loca_summary')
+            .attr('id', 'cycle_loca')
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .style("position", "absolute")
+
+
+        const cycle_loca = cycle_svg.selectAll('g')
+            .data(data)
+            // .data(cycleData)
+            .enter()
+            .append('g')
+
+        cycle_loca.append('circle')
+            .attr('fill', d => getColor())
+            .attr('r', 1)
+            .attr('cx', d => projection([d.lng, d.lat])[0])
+            .attr('cy', d => projection([d.lng, d.lat])[1])
+    }
+
+    /**
+     * # function 3 : 선택한 구 따릉이 정류소 위치 보기
+     * */
+    function showSelectedLoca(sgg) {
+        const selectedData = cycleData.filter(e => e.sgg === sgg);
+        showAllLocation(selectedData);
+    }
+
+
+</script>
+
+</html>
