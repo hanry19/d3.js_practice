@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=KEY&callback=initMap"></script>
+
+    <!-- d3 lib load -->
+    <script src="./js/d3_lib/d3/d3.min.js"></script>
+    <script src="./js/d3_lib/d3-array/d3-array.min.js"></script>
+    <script src="./js/d3_lib/d3-geo/d3-geo.min.js"></script>
+    <script src="./js/d3_lib/d3-geo-projection/d3-geo-projection.min.js"></script>
+
+    <!-- 따릉이 데이터 -->
+    <script src="./data/geoData/cycle_loca.js"></script>
+
+    <style>
+        .stations, .stations svg, .stations svg g {
+            position: absolute;
+        }
+
+        .stations, .stations svg {
+            top: 0;
+            left: 0;
+        }
+
+        #map {
+            height: 100%;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+
+</head>
+<body>
+<div id="map" style="width: 100%; height: 100%"></div>
+
+
+</body>
+
+<script>
+
+    let map;
+    initMap();
+    drawCycleStations();
+
+    const getColor = () => '#' + Math.round(Math.random() * 0xffffff).toString(16)
+
+
+    // const width = document.getElementById('maps').clientWidth;
+    // const height = document.getElementById('maps').clientHeight;
+
+
+    function initMap() {
+        map = new google.maps.Map(d3.select("#map").node(), {
+            zoom: 8,
+            center: new google.maps.LatLng(37.556059, 126.91009),
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+        });
+
+        map.addListener("zoom_changed", () => {
+
+            console.log("?Asdasd",map.zoom)
+        });
+
+    }
+
+    function drawCycleStations() {
+
+        console.log("zoom", map.zoom)
+
+        const overlay = new google.maps.OverlayView();
+
+        const width = window.innerWidth;
+        const height = window.innerHeight;
+
+        overlay.onAdd = function () {
+            const layer = d3.select(this.getPanes().overlayLayer)
+                .append("div")
+                .attr("class", "stations")
+                .style("width", width)
+                .style("height", height);
+
+            overlay.draw = function () {
+
+                const projection = this.getProjection()
+                const padding = 5;
+
+                const svg = layer.selectAll("svg")
+                    .data(cycleData)
+                    .each(transform) // update existing markers
+                    .enter()
+                    .append("svg")
+                    .each(transform)
+                    .attr("class", "marker");
+
+                svg.append("circle")
+                    .attr("fill", d => getColor())
+                    .attr("r", 5)
+                    .attr("cx", padding)
+                    .attr("cy", padding);
+
+
+                function transform(d) {
+                    const point = new google.maps.LatLng(d.lat, d.lng);
+                    const pixel = projection.fromLatLngToDivPixel(point);
+
+                    return d3.select(this)
+                        .style("left", (pixel.x - padding) + "px")
+                        .style("top", (pixel.y - padding) + "px")
+                }
+            };
+        };
+
+        overlay.setMap(map);
+    }
+    map.data.loadGeoJson('./data/geoData/seoul.geojson');
+    map.data.setStyle({
+        // icon : '//example.com/path/to/image.png',
+        fillColor: 'white',
+        strokeWeight : 1
+
+    })
+
+
+
+</script>
+
+</html>
