@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <script src="https://maps.googleapis.com/maps/api/js?key="></script>
+
+    <!-- d3 lib load -->
+    <script src="./js/d3_lib/d3/d3.min.js"></script>
+    <script src="./js/d3_lib/d3-array/d3-array.min.js"></script>
+    <script src="./js/d3_lib/d3-geo/d3-geo.min.js"></script>
+    <script src="./js/d3_lib/d3-geo-projection/d3-geo-projection.min.js"></script>
+
+    <!-- 따릉이 데이터 -->
+    <script src="./data/geoData/cycle_loca.js"></script>
+    <script src="./data/geoData/cycle_rent.js"></script>
+
+    <style>
+        .stations, .stations svg, .stations svg g {
+            position: absolute;
+        }
+
+        .stations, .stations svg {
+            top: 0;
+            left: 0;
+            position: absolute;
+        }
+
+        #map {
+            height: 100%;
+        }
+
+        html, body {
+            height: 100%;
+            margin: 0;
+            padding: 0;
+        }
+
+        .nav {
+            position: absolute;
+            width: 100%;
+            height: max-content;
+            left: 0;
+            top: 0;
+            padding: 10px;
+            background-color: rgba(190, 184, 184, 0.5)
+        }
+
+        .nav select {
+            height: 25px;
+            width: 100px;
+            margin-left: 15px;
+            border: 0;
+        }
+    </style>
+
+</head>
+<body>
+<div id="map" style="width: 100%; height: 100%"></div>
+<div class="nav">
+    <select name="sido" id="sido">
+        <option selected value="init">시 선택</option>
+    </select>
+    <select name="sgg" id="sgg">
+        <option selected value="init">구 선택</option>
+    </select>
+    <select name="emd" id="emd">
+        <option selected value="init">동 선택</option>
+    </select>
+</div>
+
+</body>
+
+
+<script>
+    let data = rent_data.filter(e => e.from_lat !== e.to_lat || e.from_lng !== e.to_lng)[parseInt(Math.random() * 100)]
+    // console.log(data)
+</script>
+
+<script>
+
+    let map;
+    initMap();
+    // const data = rent_data[0]
+    fitBound(data);
+
+    drawRentPath(data);
+
+
+    function initMap() {
+        map = new google.maps.Map(d3.select("#map").node(), {
+            zoom: 9,
+            center: new google.maps.LatLng(37.556059, 126.9809),
+            mapTypeId: google.maps.MapTypeId.ROADMAP,
+            zoomControl: false,
+            fullscreenControl: false,
+            gestureHandling: "greedy",
+            mapTypeControl: false,
+            streetViewControl: false
+        });
+
+
+        map.data.addListener("click", (e) => {
+            console.log('click!!!!')
+        })
+    }
+
+    function createGeoJson(data) {
+        const fromGeojson = {coordinates: [data.from_lng, data.from_lat], type: "Point"}
+        const toGeojson = {coordinates: [data.to_lng, data.to_lat], type: "Point"}
+        const initFeature = {type: "FeatureCollection", features: []};
+
+        const createFeature = (data, geojson, type) => initFeature.features.push({
+            type: "Feature",
+            properties: {layerType: "rent", data: data, type},
+            geometry: geojson
+        });
+
+        createFeature(data.from_nm, fromGeojson, "from");
+        createFeature(data.to_nm, toGeojson, "to");
+
+        return {feature: initFeature, loc: {from: [data.from_lat, data.from_lng], to: [data.to_lat, data.to_lng]}};
+    }
+
+
+    function createSvg(type) {
+        return `<svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 40 56" xml:space="preserve" widh="37.5" height="60">
+                        <style>
+                            .st0 {
+                                opacity: 0.2;
+                                fill: #41464f;
+                            }
+                            .st1 {
+                                opacity: 0.95;
+                                fill: #474b69;
+                            }
+                            .st2 {
+                                fill: #21264f;
+                            }
+                            .group-count {
+                                fill: #FFFFFF;
+                                font-size: 20px;
+                            }
+                        </style>
+                        <g transform="translate(15 1)">
+                            <path class="st0" d="M5,47.9c7.3,0,13.2,1.3,13.2,3.1S12.3,54,5,54S-8.2,52.7-8.2,51S-2.3,47.9,5,47.9" />
+                            <path class="st1" d="M5,0.1c10.7,0,19.4,8.7,19.4,19.4S15.7,39,5,39s-19.4-8.7-19.4-19.4S-5.7,0.1,5,0.1" />
+                        </g>
+                        <path class="st2" d="M20,55.5c-5.5,0-13.7-0.9-13.7-3.6c0-2.5,7.3-3.3,9.6-3.5c0.3,0,0.5,0.2,0.5,0.5c0,0.3-0.2,0.5-0.5,0.5
+                                    	c-5.9,0.4-8.6,1.7-8.6,2.4c0,0.9,4.4,2.5,12.7,2.5s12.7-1.6,12.7-2.5c0-0.7-2.7-1.9-8.6-2.4c-0.3,0-0.5-0.3-0.5-0.5
+                                    	c0-0.3,0.3-0.5,0.5-0.5c2.2,0.2,9.7,0.9,9.7,3.5C33.7,54.6,25.5,55.5,20,55.5z M20.2,52c-0.4,0.1-0.9-0.2-0.9-0.7V40.5
+                                    	C8.6,40.1,0,31.4,0,20.5c0-11,9-20,20-20s20,9,20,20c0,10.8-8.6,19.6-19.4,20v10.8C20.6,51.6,20.5,51.9,20.2,52z M20,1.6
+                                    	c-10.5,0-19,8.5-19,19s8.5,19,19,19s19-8.5,19-19S30.5,1.6,20,1.6z M32.9,11.7c-0.2,0-0.4-0.1-0.4-0.3c-1-1.9-2.6-3.7-4.7-4.7
+                                    	c-0.2-0.1-0.3-0.4-0.2-0.7c0.1-0.2,0.4-0.3,0.7-0.2c2.1,1.1,4,2.9,5.1,5.1c0.1,0.2,0,0.5-0.2,0.7C33,11.7,33,11.7,32.9,11.7z" />
+                        <text x="50%" y="50%" text-anchor="middle" class="group-count">${type}</text>
+                    </svg>`
+    }
+
+    function fitBound(data) {
+        const {feature, loc} = createGeoJson(data);
+
+        map.data.addGeoJson(feature);
+
+        map.data.setStyle((feature) => {
+            const getType = feature.getProperty("type");
+            return {
+                icon: {
+                    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(createSvg(getType)),
+                    // anchor: new window.google.maps.Point(20, 56)
+                },
+                zIndex: 10,
+                visible: true
+            };
+
+        });
+        const bound = new google.maps.LatLngBounds();
+        bound.extend(new google.maps.LatLng(loc.from[0], loc.from[1]))
+        bound.extend(new google.maps.LatLng(loc.to[0], loc.to[1]))
+
+        map.fitBounds(bound);
+    }
+
+
+    function drawRentPath(data) {
+
+        const overlay = new google.maps.OverlayView();
+
+        let layer
+        let projection
+        let boundObj
+        let bound_sw
+        let bound_ne
+
+        overlay.onAdd = function () {
+            layer = d3.select(this.getPanes().overlayLayer)
+                .append("div")
+                .attr("class", "stations")
+                .attr("id", "arrowCanvas")
+        };
+
+        overlay.draw = function () {
+            if (d3.select('#arrowCanvas svg')) {
+                d3.select('#arrowCanvas svg').remove();
+            }
+
+            projection = this.getProjection();
+
+            boundObj = map.getBounds();
+            bound_sw = projection.fromLatLngToDivPixel(boundObj.getSouthWest());
+            bound_ne = projection.fromLatLngToDivPixel(boundObj.getNorthEast());
+
+
+            const canvas = layer.append("svg")
+                .attr("id", 'arrowCanvasSvg')
+                .style("left", bound_sw.x + 'px')
+                .style("top", bound_ne.y + 'px')
+                .style('width', bound_ne.x - bound_sw.x)
+                .style('height', bound_sw.y - bound_ne.y)
+
+
+            const arrowGroupCanvas = canvas.append("g").attr("id", "arrowGroup");
+
+            let arrowCanvas = arrowGroupCanvas.selectAll('g')
+                .data([data])
+                .each(d => transform(d))
+                .enter()
+                .append('g')
+                .each(d => transform(d));
+
+
+            let lineArrow = arrowCanvas.append("path")
+                .attr("d", d => {
+                    const {from, to, gap} = calc(d);
+                    const lineCurve = d3.line().curve(d3.curveBasis);
+                    return lineCurve([[from.x, from.y], [gap.x, gap.y], [to.x, to.y]]);
+                })
+                .style('stroke', '#498eff')
+                .style('stroke-width', 3)
+                .attr("fill-opacity", 0)
+
+
+        };
+
+        function calc(d) {
+            const start_point = d.fr_pix;
+            const end_point = d.to_pix;
+
+            const from_point = {x: start_point.x - bound_sw.x, y: start_point.y - bound_ne.y};
+            const to_point = {x: end_point.x - bound_sw.x, y: end_point.y - bound_ne.y}
+
+            // from to 중 어디가 x 축과 가깝나? 가까운걸 임의의 변수로 잡자
+            const [alpha, beta] = from_point.y > to_point.y
+                ? [from_point, to_point] : [to_point, from_point];
+
+
+            const getDistance = (x, y) => Math.sqrt(x ** 2 + y ** 2);
+            const getDegree = (x, y) => (Math.atan2(y, x) * 180 / Math.PI);
+
+
+            const distance_x = Math.abs(beta.x - alpha.x);
+            const distance_y = Math.abs(beta.y - alpha.y);
+            const distance_d = getDistance(distance_x, distance_y);
+
+            const scaleValue = (distance_d / 600).toFixed(4);
+            const scale = scaleValue * 50;
+
+            const angle = getDegree(distance_x, distance_y); // radian to degree
+            const center = {x: (alpha.x + beta.x) / 2, y: (alpha.y + beta.y) / 2};
+
+            return {
+                angle
+                , gap: {x : center.x + scale ,y: center.y + scale}
+                , from: alpha
+                , to: beta,
+            }
+        }
+
+        function transform(d) {
+            const fr_d = new google.maps.LatLng(d.from_lat, d.from_lng);
+            const fr_pixel = projection.fromLatLngToDivPixel(fr_d);
+
+            const to_d = new google.maps.LatLng(d.to_lat, d.to_lng);
+            const to_pixel = projection.fromLatLngToDivPixel(to_d);
+
+            d.fr_pix = fr_pixel;
+            d.to_pix = to_pixel;
+            d.min = {x: 0, y: 0};
+            d.min_x = Math.min(fr_pixel.x, to_pixel.x);
+            d.min_y = Math.min(fr_pixel.y, to_pixel.y);
+            d.max = {x: 0, y: 0};
+            d.max_x = Math.max(fr_pixel.x, to_pixel.x);
+            d.max_y = Math.max(fr_pixel.y, to_pixel.y);
+        }
+
+        overlay.setMap(map);
+    }
+
+</script>
+
+</html>
