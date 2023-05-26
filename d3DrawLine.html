@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>Title</title>
 
-    <script src="https://maps.googleapis.com/maps/api/js?key="></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCU5DOltmjbEjrZoQl5XDkm5-NWvL8WbDk"></script>
 
     <!-- d3 lib load -->
     <script src="./js/d3_lib/d3/d3.min.js"></script>
@@ -254,8 +254,11 @@
                 ? [from_point, to_point] : [to_point, from_point];
 
 
+            console.log(alpha, beta);
+
             const getDistance = (x, y) => Math.sqrt(x ** 2 + y ** 2);
             const getDegree = (x, y) => (Math.atan2(y, x) * 180 / Math.PI);
+            const toRadian = (degree) => degree * ( Math.PI/180);
 
 
             const distance_x = Math.abs(beta.x - alpha.x);
@@ -268,9 +271,13 @@
             const angle = getDegree(distance_x, distance_y); // radian to degree
             const center = {x: (alpha.x + beta.x) / 2, y: (alpha.y + beta.y) / 2};
 
+            const cyx = center.x + (150 * Math.cos(toRadian(angle - 90)) * scaleValue);
+            const cyy = center.y + (150 * Math.sin(toRadian(angle - 90)) * scaleValue);
+
+
             return {
                 angle
-                , gap: {x : center.x + scale ,y: center.y + scale}
+                , gap: {x : cyx ,y: cyy}
                 , from: alpha
                 , to: beta,
             }
