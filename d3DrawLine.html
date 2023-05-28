@@ -58,33 +58,29 @@
 </head>
 <body>
 <div id="map" style="width: 100%; height: 100%"></div>
-<div class="nav">
-    <select name="sido" id="sido">
-        <option selected value="init">시 선택</option>
-    </select>
-    <select name="sgg" id="sgg">
-        <option selected value="init">구 선택</option>
-    </select>
-    <select name="emd" id="emd">
-        <option selected value="init">동 선택</option>
-    </select>
-</div>
+<!--<div class="nav">-->
+<!--    <select name="sido" id="sido">-->
+<!--        <option selected value="init">시 선택</option>-->
+<!--    </select>-->
+<!--    <select name="sgg" id="sgg">-->
+<!--        <option selected value="init">구 선택</option>-->
+<!--    </select>-->
+<!--    <select name="emd" id="emd">-->
+<!--        <option selected value="init">동 선택</option>-->
+<!--    </select>-->
+<!--</div>-->
 
 </body>
 
 
 <script>
-    let data = rent_data.filter(e => e.from_lat !== e.to_lat || e.from_lng !== e.to_lng)[parseInt(Math.random() * 100)]
-    // console.log(data)
-</script>
 
-<script>
+    const data = rent_data.filter(e => e.from_lat !== e.to_lat || e.from_lng !== e.to_lng)[parseInt(Math.random() * 100)];
 
     let map;
-    initMap();
-    // const data = rent_data[0]
-    fitBound(data);
 
+    initMap();
+    fitBound(data);
     drawRentPath(data);
 
 
@@ -167,7 +163,6 @@
             return {
                 icon: {
                     url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(createSvg(getType)),
-                    // anchor: new window.google.maps.Point(20, 56)
                 },
                 zIndex: 10,
                 visible: true
@@ -181,16 +176,11 @@
         map.fitBounds(bound);
     }
 
-
     function drawRentPath(data) {
 
         const overlay = new google.maps.OverlayView();
+        let layer, projection, boundObj, bound_sw, bound_ne;
 
-        let layer
-        let projection
-        let boundObj
-        let bound_sw
-        let bound_ne
 
         overlay.onAdd = function () {
             layer = d3.select(this.getPanes().overlayLayer)
@@ -234,10 +224,53 @@
                     const {from, to, gap} = calc(d);
                     const lineCurve = d3.line().curve(d3.curveBasis);
                     return lineCurve([[from.x, from.y], [gap.x, gap.y], [to.x, to.y]]);
-                })
-                .style('stroke', '#498eff')
+                }).style('stroke', '#498eff')
                 .style('stroke-width', 3)
-                .attr("fill-opacity", 0)
+                .attr("fill-opacity", 0);
+
+
+
+            // Animation 효과 !!
+            lineArrow.attr("stroke-dasharray", function (d) {
+                const length = d3.select(this).node().getTotalLength();
+                return length + " " + length;
+            })
+                .attr("stroke-dashoffset", function (d) {
+                    const length = d3.select(this).node().getTotalLength();
+                    return length;
+                })
+                .transition()
+                .ease(d3.easeLinear)
+                .attr("stroke-dashoffset", 0)
+                .duration(500)
+                .transition()
+                .attr("marker-end", (d, i) => "url(#arrow-" + i + ")");
+
+
+            // 화살표 marker
+            let defs = canvas.append("defs");
+            let arrow = defs.selectAll("marker")
+                .data([data])
+                .enter()
+
+            let arrowOrg = arrow.append("marker")
+                .attr("id", (d, i) => "arrow-" + i)
+                .attr("viewBox", "0 -5 10 10")
+                .attr("refX", 1.5)
+                .attr("refY", 0)
+                .attr("markerWidth", 20)
+                .attr("markerHeight", 20)
+                .attr("orient", "auto")
+                .attr("markerUnits", "userSpaceOnUse")
+            ;
+            arrowOrg.append("path")
+                .attr("d", "M0,-5 L7,0 L0,5 L0,0")
+                .attr("class", "arrow-large")
+                .attr("stroke", '#498eff')
+                .attr("stroke-width", 0)
+                .attr("fill", '#498eff')
+                .attr("fill-opacity", "1")
+            ;
 
 
         };
@@ -249,55 +282,42 @@
             const from_point = {x: start_point.x - bound_sw.x, y: start_point.y - bound_ne.y};
             const to_point = {x: end_point.x - bound_sw.x, y: end_point.y - bound_ne.y}
 
-            // from to 중 어디가 x 축과 가깝나? 가까운걸 임의의 변수로 잡자
-            const [alpha, beta] = from_point.y > to_point.y
-                ? [from_point, to_point] : [to_point, from_point];
-
-
-            console.log(alpha, beta);
-
             const getDistance = (x, y) => Math.sqrt(x ** 2 + y ** 2);
             const getDegree = (x, y) => (Math.atan2(y, x) * 180 / Math.PI);
-            const toRadian = (degree) => degree * ( Math.PI/180);
+            const toRadian = (degree) => degree * (Math.PI / 180);
 
-
-            const distance_x = Math.abs(beta.x - alpha.x);
-            const distance_y = Math.abs(beta.y - alpha.y);
+            const distance_x = Math.abs(to_point.x - from_point.x);
+            const distance_y = Math.abs(to_point.y - from_point.y);
             const distance_d = getDistance(distance_x, distance_y);
 
             const scaleValue = (distance_d / 600).toFixed(4);
-            const scale = scaleValue * 50;
 
             const angle = getDegree(distance_x, distance_y); // radian to degree
-            const center = {x: (alpha.x + beta.x) / 2, y: (alpha.y + beta.y) / 2};
+            const center = {x: (from_point.x + to_point.x) / 2, y: (from_point.y + to_point.y) / 2};
 
             const cyx = center.x + (150 * Math.cos(toRadian(angle - 90)) * scaleValue);
             const cyy = center.y + (150 * Math.sin(toRadian(angle - 90)) * scaleValue);
 
 
             return {
-                angle
-                , gap: {x : cyx ,y: cyy}
-                , from: alpha
-                , to: beta,
+                gap: {x: cyx, y: cyy}
+                , from: from_point
+                , to: to_point,
             }
         }
 
         function transform(d) {
-            const fr_d = new google.maps.LatLng(d.from_lat, d.from_lng);
-            const fr_pixel = projection.fromLatLngToDivPixel(fr_d);
 
-            const to_d = new google.maps.LatLng(d.to_lat, d.to_lng);
-            const to_pixel = projection.fromLatLngToDivPixel(to_d);
+            const convertToPixel = (projection, lat, lng) => {
+                const latLng = new google.maps.LatLng(lat, lng);
+                return projection.fromLatLngToDivPixel(latLng);
+            };
+
+            const fr_pixel = convertToPixel(projection, d.from_lat, d.from_lng);
+            const to_pixel = convertToPixel(projection, d.to_lat, d.to_lng);
 
             d.fr_pix = fr_pixel;
             d.to_pix = to_pixel;
-            d.min = {x: 0, y: 0};
-            d.min_x = Math.min(fr_pixel.x, to_pixel.x);
-            d.min_y = Math.min(fr_pixel.y, to_pixel.y);
-            d.max = {x: 0, y: 0};
-            d.max_x = Math.max(fr_pixel.x, to_pixel.x);
-            d.max_y = Math.max(fr_pixel.y, to_pixel.y);
         }
 
         overlay.setMap(map);
