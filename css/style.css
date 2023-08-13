@@ -1,0 +1,132 @@
+
+html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+
+}
+
+.container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+
+}
+
+#map {
+    width: inherit;
+    height: inherit;
+}
+#accordion {
+    position: absolute;
+    top: 65px;
+    left: 20px;
+    min-width: 200px;
+    max-width: 230px;
+    height: 90%;
+    background-color: #fff;
+    border: 1px black solid;
+    border-radius: 1.2rem;
+    overflow: hidden;
+}
+
+#accordion .acc-header {
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#accordion .item-wrap {
+    height: 100%;
+    overflow: scroll;
+}
+
+#accordion .acc-btn span {
+    margin-left: 10px;
+    border-radius: 10px;
+    padding: 3px;
+    background-color: #b9b9ef;
+}
+
+
+#accordion button {
+    background-color: #eee;
+    color: #444;
+    cursor: pointer;
+    padding: 18px;
+    width: 100%;
+    text-align: left;
+    border: none;
+    outline: none;
+    transition: 0.4s;
+}
+
+#accordion .active, button:hover {
+    background-color: #ccc;
+}
+
+#accordion .panel {
+    height: 240px;
+    padding: 0;
+    background-color: white;
+    display: none;
+    overflow: scroll;
+    transition: max-height 0.2s ease-out;
+    cursor: pointer;
+}
+#accordion .panel div {
+    padding-left: 10px;
+    padding-top: 10px;
+    border-bottom: #777777 1px solid;
+    margin: 0;
+    width: 100%;
+    height: 30px;
+
+}
+#accordion .panel div:hover {
+    background-color: #777777;
+}
+
+
+
+#accordion button:after {
+    content: '\02795'; /* Unicode character for "plus" sign (+) */
+    font-size: 13px;
+    color: #777;
+    float: right;
+    margin-left: 5px;
+}
+
+#accordion .active:after {
+    content: "\2796"; /* Unicode character for "minus" sign (-) */
+}
+
+.container .marker {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: nowrap;
+    height: 50px;
+    align-content: center;
+    align-items: center;
+    margin-left: 20px;
+
+}
+.container .marker .btnWrap ,
+.container .marker .inputWrap {
+    display: flex;
+    flex-direction: row;
+    margin-left: 30px;
+}
+.container .marker .btnWrap button {
+    margin-left: 10px;
+}
+.container .marker .inputWrap label {
+    margin-right: 10px;
+    margin-left: 10px;
+}
+#address {
+    width: 300px;
+}

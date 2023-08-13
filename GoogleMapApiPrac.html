@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <link rel="stylesheet" href="./css/style.css">
+
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC8xLEmzPRlvoDj20geTyVoszkuPdzEYm4&v=weekly&region=KO&language=ko"></script>
+
+    <!-- 따릉이 데이터 -->
+    <script src="./data/geoData/cycle_loca.js"></script>
+
+</head>
+<body>
+<div class="container">
+    <div class="nav">
+        <div class="marker">
+            <span>따릉이 저장소 추가</span>
+            <div class="btnWrap">
+                <button onclick="pracFn().addMarkerByMouse()">마우스로 추가</button>
+                <button>좌표로 추가</button>
+            </div>
+            <div class="inputWrap">
+                <label for="lat">lat</label>
+                <input id="lat" type="text">
+                <label for="lng">lng </label>
+                <input id="lng" type="text">
+                <label for="address">주소 </label>
+                <input id="address" type="text">
+            </div>
+        </div>
+    </div>
+    <div id="map"></div>
+    <div id="accordion">
+        <div class="acc-header">
+            구별 따릉이 대여소
+        </div>
+        <div class="item-wrap">
+
+        </div>
+    </div>
+</div>
+
+</body>
+
+<script src="./js/GmapPrac.js"></script>
+<script>
+
+
+    // Seoul Map Load
+    const seoulGeoJsonPath = './data/geoData/seoul.geojson';
+
+    pracFn().initMap();
+    pracFn().setGeoJson(seoulGeoJsonPath);
+    pracFn().addAccordionItem(cycleData);
+    pracFn().accordionClickEventHandler();
+    pracFn().addAccoItemClickEventHandler();
+
+
+
+</script>
+
+</html>
