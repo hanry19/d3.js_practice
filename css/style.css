@@ -32,16 +32,18 @@ html, body {
     overflow: hidden;
 }
 
-#accordion .acc-header {
+#popup .header,
+#accordion .header {
     height: 40px;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
+#popup .item-wrap,
 #accordion .item-wrap {
     height: 100%;
-    overflow: scroll;
+    overflow: auto;
 }
 
 #accordion .acc-btn span {
@@ -68,15 +70,20 @@ html, body {
     background-color: #ccc;
 }
 
+#popup .panel,
 #accordion .panel {
     height: 240px;
-    padding: 0;
     background-color: white;
     display: none;
-    overflow: scroll;
+    overflow: auto;
     transition: max-height 0.2s ease-out;
     cursor: pointer;
+    padding-left: 15px;
 }
+#popup .panel {
+    display: block;
+}
+#popup .panel. div,
 #accordion .panel div {
     padding-left: 10px;
     padding-top: 10px;
@@ -86,6 +93,8 @@ html, body {
     height: 30px;
 
 }
+
+#popup .panel div:hover,
 #accordion .panel div:hover {
     background-color: #777777;
 }
@@ -129,4 +138,15 @@ html, body {
 }
 #address {
     width: 300px;
+}
+
+#popup {
+    position: absolute;
+    top: 70px;
+    width: 200px;
+    left: 270px;
+    height: 300px;
+    background-color: #ffffff;
+    border: 1px solid black;
+    border-radius: 1.2rem;
 }

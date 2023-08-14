@@ -2,7 +2,18 @@ let _map;
 const infoArray = [];
 let _marker;
 let _addMarker;
+let _positionMarker;
 let _mapStyle = {fillColor: 'rgba(97,162,246,1)', strokeWeight: 1, strokeColor: '#9d9d9d'};
+const geocoder = new google.maps.Geocoder();
+let active = false;
+
+const SEOUL_BOUND = {
+    north: 37.69772544437243,
+    south: 37.41412272103989,
+    west: 126.614746282959,
+    east: 127.34705371704104,
+};
+
 
 function pracFn() {
 
@@ -13,9 +24,13 @@ function pracFn() {
         const div = document.getElementById('map');
 
         _map = new google.maps.Map(div, {
-            zoom: 11.8,
+            zoom: 12,
             center: new google.maps.LatLng(37.556059, 126.9809),
             mapTypeId: google.maps.MapTypeId.ROADMAP,
+            restriction: {
+                latLngBounds: SEOUL_BOUND,
+                strictBounds: false,
+            },
             zoomControl: true,
             fullscreenControl: false,
             gestureHandling: "greedy",
@@ -23,13 +38,81 @@ function pracFn() {
             streetViewControl: false
         });
 
-        
-        _map.data.addListener("click",e =>{
+        _map.data.addListener("click", e => {
             console.log(e.feature.h.SGG_NM)
+
+            setFitBounds({address: e.feature.h.SGG_NM});
             setGeoJsonStyle(e.feature.h.SGG_NM);
         })
 
+        setSearchBox();
     }
+
+    function setFitBounds(obj, callback) {
+        if (!obj) {
+            return false;
+        }
+        geocoder.geocode(obj).then(e => {
+            if (!callback) {
+                _map.fitBounds(e.results[0].geometry.bounds);
+                return false;
+            }
+            callback(e);
+            _map.fitBounds(new google.maps.LatLngBounds(e.results[0].geometry.location));
+            _map.setZoom(13);
+        });
+    }
+
+
+    function setSearchBox() {
+
+        const input = document.getElementById('address');
+        const searchBox = new google.maps.places.SearchBox(input);
+
+        searchBox.addListener('places_changed', () => {
+            removeMarker();
+            const places = searchBox.getPlaces();
+            const bounds = new google.maps.LatLngBounds();
+
+            _positionMarker = [];
+
+            places.forEach((p, idx) => {
+                if (!p.geometry || !p.geometry.location) {
+                    console.log("return place contains no geometry");
+                    return;
+                }
+
+                _positionMarker.push(new google.maps.Marker({
+                        map: _map,
+                        title: p.name,
+                        position: p.geometry.location,
+                    })
+                );
+
+                const info = dynaForm().searchBoxForm(p);
+                const infoWindow = new google.maps.InfoWindow({
+                    content: info,
+                })
+
+                _positionMarker[idx].addListener('click', e => {
+                    infoArray.forEach(e => e?.close());
+                    infoWindow.open({
+                        anchor: _positionMarker[idx],
+                        map: _map,
+                    })
+                    infoArray.push(infoWindow);
+                })
+
+                if (p.geometry.viewport) {
+                    bounds.union(p.geometry.viewport);
+                } else {
+                    bounds.extend(p.geometry.location);
+                }
+            })
+            _map.fitBounds(bounds);
+        });
+    }
+
 
     /**
      * GeoJSon 올리기
@@ -54,7 +137,6 @@ function pracFn() {
                 return _mapStyle;
             }
         })
-
     }
 
 
@@ -65,65 +147,39 @@ function pracFn() {
      */
     function addMarker(data, options = {}) {
         const {title, label} = options;
-
-        const info = `
-                    <div>
-                        <table>
-                        <caption>따릉이 정류소 정보</caption>
-                        <tbody>
-                            <tr>
-                                <th>이름</th>
-                                <td>${data.name}</td>
-                            </tr>
-                            <tr>
-                                <th>번호</th>
-                                <td>${data.no}</td>
-                            </tr>
-                            <tr>
-                                <th>위치</th>
-                                <td>${data.address}</td>
-                            </tr>
-                            <tr>
-                                <th>날짜</th>
-                                <td>${data.date}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                 </div>
-                        `
-
+        const info = dynaForm().basicForm(data);
         const infoWindow = new google.maps.InfoWindow({
             content: info,
         })
 
-        removeMarker()
-        
+        removeMarker();
+
         _marker = new google.maps.Marker({
             position: new google.maps.LatLng(data.lat, data.lng),
             map: _map,
             title,
             label,
-        })
-
+        });
 
         _marker.addListener("click", () => {
             infoArray.forEach(e => e?.close());
             infoWindow.open({
                 anchor: _marker,
                 map: _map,
-            })
+            });
             infoArray.push(infoWindow);
-        })
+        });
 
     }
 
     function removeMarker() {
         _marker?.setMap(null);
         _addMarker?.setMap(null);
+        _positionMarker?.forEach(e => e.setMap(null));
     }
 
 
-    /***
+    /**
      * 아코디언 버튼 클릭 이벤트 핸들러
      */
     function accordionClickEventHandler() {
@@ -134,11 +190,16 @@ function pracFn() {
             [...accBtns].forEach(e => {
                 if (e === me) {
                     me.classList.toggle("active");
+
                     const panel = me.nextElementSibling;
+
                     if (panel.style.display === "block") {
+                        active = false;
+                        setInitPosition();
                         panel.style.display = 'none';
                         pracFn().setGeoJsonStyle();
                     } else {
+                        active = true;
                         panel.style.display = "block";
                         pracFn().setGeoJsonStyle(sgg);
                     }
@@ -147,16 +208,21 @@ function pracFn() {
                     const panel = e.nextElementSibling;
                     panel.style.display = 'none';
                 }
+
+
             });
         };
-        
-        
-        
+
+
         for (const el of accBtns) {
             el.addEventListener("click", function (e) {
                 const sgg = this.innerText.replace(/[0-9]/g, "").trim();
+
+                active ? setInitPosition() : setFitBounds({address: sgg});
+                
                 removeMarker();
                 setActiveItem(this, sgg);
+
             });
         }
     }
@@ -222,40 +288,42 @@ function pracFn() {
 
         console.log(_map.getBounds().getSouthWest().lat());
         console.log(_map.getBounds().getSouthWest().lng());
-        console.log(_map.getBounds().getSouthWest().lat());
-        console.log(_map.getBounds().getSouthWest().lng());
-        
+        console.log(_map.getBounds().getNorthEast().lat());
+        console.log(_map.getBounds().getNorthEast().lng());
+
         _addMarker = new google.maps.Marker({
             position: new google.maps.LatLng(37.556059, 126.9809),
             map: _map,
             icon,
             draggable: true,
         });
-        _addMarker.addListener('mouseup',e => {
 
-            const geocoder = new google.maps.Geocoder();
+        _addMarker.addListener('mouseup', e => {
             const latLng = e.latLng.toJSON();
-
-            const latBox = document.getElementById('lat');
-            const lngBox = document.getElementById('lng');
-            const addressBox = document.getElementById('address');
-
-
-            geocoder.geocode({location: latLng})
-                .then(e => {
-                    console.log(e.results);
-                    const address = e.results[0].formatted_address;
-                    const sgg = address.split(' ')[2];
-
-                    setGeoJsonStyle(sgg);
-
-                    latBox.value = latLng.lat;
-                    lngBox.value = latLng.lng;
-                    addressBox.value = address;
-
-                });
-
+            reverseGeocoding(latLng);
         })
+    }
+
+    function reverseGeocoding(latLng) {
+
+        const latBox = document.getElementById('lat');
+        const lngBox = document.getElementById('lng');
+        const addressBox = document.getElementById('address');
+
+        setFitBounds({location: latLng}, (e) => {
+            const address = e.results[0].formatted_address;
+            const sgg = address.split(' ')[2];
+
+            setGeoJsonStyle(sgg);
+            latBox.value = latLng.lat;
+            lngBox.value = latLng.lng;
+            addressBox.value = address;
+        });
+    }
+
+    function setInitPosition() {
+        _map.setZoom(12);
+        _map.setCenter(new google.maps.LatLng(37.556059, 126.9809))
     }
 
 
@@ -282,6 +350,7 @@ function pracFn() {
             setGeoJsonStyle(target);
         },
         addMarkerByMouse() {
+            setInitPosition();
             removeMarker();
             setGeoJsonStyle();
             addMarkerByMouse();
