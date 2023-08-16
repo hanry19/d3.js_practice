@@ -6,7 +6,12 @@
 
     <link rel="stylesheet" href="./css/style.css">
 
-    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC8xLEmzPRlvoDj20geTyVoszkuPdzEYm4&libraries=places&v=weekly&region=KO&language=ko"></script>
+    <script
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC8xLEmzPRlvoDj20geTyVoszkuPdzEYm4&callback=init&libraries=places&v=weekly"
+            defer
+    ></script>
+    <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+
 
     <!-- 따릉이 데이터 -->
     <script src="./data/geoData/cycle_loca.js"></script>
@@ -58,6 +63,7 @@
 </div>
 
 </body>
+
 <script src="./js/GmapPrac.js"></script>
 <script src="./js/dynaForm.js"></script>
 <script>
@@ -65,11 +71,13 @@
     // Seoul Map Load
     const seoulGeoJsonPath = './data/geoData/seoul.geojson';
 
-    pracFn().initMap();
-    pracFn().setGeoJson(seoulGeoJsonPath);
-    pracFn().addAccordionItem(cycleData);
-    pracFn().accordionClickEventHandler();
-    pracFn().addAccoItemClickEventHandler();
+    function init() {
+        pracFn().initMap();
+        pracFn().setGeoJson(seoulGeoJsonPath);
+        pracFn().addAccordionItem(cycleData);
+        pracFn().accordionClickEventHandler();
+        pracFn().addAccoItemClickEventHandler();
+    }
 
 
 </script>

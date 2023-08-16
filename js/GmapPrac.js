@@ -4,8 +4,8 @@ let _marker;
 let _addMarker;
 let _positionMarker;
 let _mapStyle = {fillColor: 'rgba(97,162,246,1)', strokeWeight: 1, strokeColor: '#9d9d9d'};
-const geocoder = new google.maps.Geocoder();
 let active = false;
+
 
 const SEOUL_BOUND = {
     north: 37.69772544437243,
@@ -22,33 +22,92 @@ function pracFn() {
      */
     function initMap() {
         const div = document.getElementById('map');
-
-        _map = new google.maps.Map(div, {
+        let map = new google.maps.Map(div, {
             zoom: 12,
             center: new google.maps.LatLng(37.556059, 126.9809),
+            // center: { lat: 37.4239163, lng: -122.0947209 },
             mapTypeId: google.maps.MapTypeId.ROADMAP,
-            restriction: {
-                latLngBounds: SEOUL_BOUND,
-                strictBounds: false,
-            },
+            // restriction: {
+            //     latLngBounds: SEOUL_BOUND,
+            //     strictBounds: false,
+            // },
+            mapId: '641f3fc5cc9d2121',
             zoomControl: true,
             fullscreenControl: false,
             gestureHandling: "greedy",
             mapTypeControl: false,
-            streetViewControl: false
+            streetViewControl: false,
+
         });
 
-        _map.data.addListener("click", e => {
-            console.log(e.feature.h.SGG_NM)
+        const infoWindow = new google.maps.InfoWindow({
+            content: "",
+            disableAutoPan: true,
+        });
 
+
+        const markers = cycleData.map((e, i) => {
+            const marker = new google.maps.Marker({
+                position: {lat: e.lat, lng: e.lng},
+            });
+
+            marker.addListener("click", () => {
+                infoWindow.setContent(`<div>test</div>`);
+                infoWindow.open(map, marker);
+            });
+            return marker;
+        });
+
+
+        const renderer = {
+            render: function ({count, position}, stats) {
+                // use d3-interpolateRgb to interpolate between red and blue
+                const color = 'red'
+                // create svg url with fill color
+                const svg = window.btoa(`
+                      <svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+                        <circle cx="120" cy="120" opacity=".8" r="70" />    
+                      </svg>`);
+                // create marker using svg icon
+                return new google.maps.Marker({
+                    position,
+                    icon: {
+                        url: `data:image/svg+xml;base64,${svg}`,
+                        scaledSize: new google.maps.Size(75, 75),
+                    },
+                    label: {
+                        text: String(count),
+                        color: "rgba(255,255,255,0.9)",
+                        fontSize: "12px",
+                    },
+                    // adjust zIndex to be above other markers
+                    zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count,
+                });
+            }
+        };
+
+        const algorithm = new markerClusterer.GridAlgorithm({});
+
+        // Add a marker clusterer to manage the markers.
+        new markerClusterer.MarkerClusterer({map, markers, renderer,algorithm});
+
+        console.log(markerClusterer)
+
+        map.data.addListener("click", e => {
             setFitBounds({address: e.feature.h.SGG_NM});
             setGeoJsonStyle(e.feature.h.SGG_NM);
-        })
+        });
 
         setSearchBox();
+
+        _map = map;
+
+
     }
 
     function setFitBounds(obj, callback) {
+        const geocoder = new google.maps.Geocoder();
+
         if (!obj) {
             return false;
         }
@@ -219,7 +278,7 @@ function pracFn() {
                 const sgg = this.innerText.replace(/[0-9]/g, "").trim();
 
                 active ? setInitPosition() : setFitBounds({address: sgg});
-                
+
                 removeMarker();
                 setActiveItem(this, sgg);
 
@@ -257,6 +316,7 @@ function pracFn() {
     function createAccItem(value) {
         let result = [];
         for (const v of value) {
+
             const div = document.createElement('div');
             div.innerText = v.name;
             div.className = 'item';
