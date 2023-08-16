@@ -6,8 +6,7 @@
 
     <link rel="stylesheet" href="./css/style.css">
 
-    <script
-            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC8xLEmzPRlvoDj20geTyVoszkuPdzEYm4&callback=init&libraries=places&v=weekly"
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC8xLEmzPRlvoDj20geTyVoszkuPdzEYm4&libraries=marker,places&v=beta&region=KO&language=ko&callback=init"
             defer
     ></script>
     <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
@@ -24,8 +23,13 @@
         <div class="marker">
             <span>따릉이 저장소 추가</span>
             <div class="btnWrap">
+                <select class="select-marker-type">
+                    <option selected value="basic">basic</option>
+                    <option value="advanced">Advanced</option>
+                    <option value="cluster">cluster</option>
+                    <option value="advancedCluster">AdvancedCluster</option>
+                </select>
                 <button onclick="pracFn().addMarkerByMouse()">마우스로 추가</button>
-                <button>좌표로 추가</button>
             </div>
             <div class="inputWrap">
                 <label for="lat">lat</label>
@@ -77,6 +81,28 @@
         pracFn().addAccordionItem(cycleData);
         pracFn().accordionClickEventHandler();
         pracFn().addAccoItemClickEventHandler();
+        pracFn().setBasicMarker();
+
+        const markerType = document.querySelector('.marker .btnWrap .select-marker-type');
+        markerType.addEventListener('change', (e) => {
+            pracFn().removeMarker();
+            const type = e.target.value;
+            switch (type) {
+                case 'cluster':
+                    pracFn().setClustering();
+                    break;
+                case 'advanced':
+                    pracFn().setAdvancedMarker();
+                    break;
+                case 'advancedCluster':
+                    pracFn().setClusteringAdvancedMarker();
+                    break;
+                default:
+                    pracFn().setBasicMarker();
+
+            }
+        })
+
     }
 
 
