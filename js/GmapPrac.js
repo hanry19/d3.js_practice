@@ -521,27 +521,11 @@ function pracFn() {
 
     function setDataLayer() {
         console.time("setDataLayer")
-        
-        
+
         _map.data.loadGeoJson('./data/geoData/cycleRent.geojson');
         _map.data.setStyle({
-            // visible: false,
-            // icon
         })
         
-        //     _map.data.loadGeoJson('./data/geoData/cycleRent.geojson', null, (features) => {
-        //
-        //     let markers = features.map((feature) => {
-        //         const lat = feature.getGeometry().g.lat();
-        //         const lng = feature.getGeometry().g.lng();
-        //
-        //         return new google.maps.Marker({position: {lat, lng}, icon});
-        //     });
-        //
-        //     new markerClusterer.MarkerClusterer({map: _map, markers, ...getClusterOption()});
-        // });
-        
-
         console.timeEnd("setDataLayer")
     }
 
