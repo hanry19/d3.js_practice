@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="kr">
 <head>
     <meta charset="UTF-8">
     <title>Title</title>
@@ -15,7 +15,7 @@
     <!-- 따릉이 데이터 -->
     <script src="./data/geoData/cycle_loca.js"></script>
     <script src="./data/geoData/cycle_rent.js"></script>
-
+    <script src="./data/geoData/cycle_rentGeojson.js"></script>
 </head>
 <body>
 <div class="container">
@@ -42,7 +42,7 @@
         </div>
     </div>
     <div id="map"></div>
-    <div id="accordion">
+    <div id="accordion" style="visibility: hidden">
         <div class="header">
             구별 따릉이 대여소
         </div>
@@ -51,7 +51,7 @@
         </div>
     </div>
 
-    <div id="popup">
+    <!--<div id="popup">
         <div class="header">
             해당 대여소 대여 이력
         </div>
@@ -63,7 +63,7 @@
                 <div class="item">asda</div>
             </div>
         </div>
-    </div>
+    </div>-->
 </div>
 
 </body>
@@ -77,11 +77,20 @@
 
     function init() {
         pracFn().initMap();
-        pracFn().setGeoJson(seoulGeoJsonPath);
+        // pracFn().setGeoJson(seoulGeoJsonPath);
         pracFn().addAccordionItem(cycleData);
         pracFn().accordionClickEventHandler();
         pracFn().addAccoItemClickEventHandler();
-        pracFn().setBasicMarker();
+
+        /**
+         * 각 마커 별 실행 함수들
+         * */
+        // pracFn().setDataLayer(); // 데이터 레이어
+        pracFn().setDataLayerClustering(); // 데이터 레이어 클러스터링
+        // pracFn().setBasicMarker();        // 기본 마커
+        // pracFn().setClustering();        // 기본 마커 클러스터링
+        // pracFn().setAdvancedMarker();    // 어드벤스드 마커
+        // pracFn().setClusteringAdvancedMarker();      //어드벤스드 마커 클러스터링
 
         const markerType = document.querySelector('.marker .btnWrap .select-marker-type');
         markerType.addEventListener('change', (e) => {

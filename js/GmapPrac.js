@@ -1,9 +1,21 @@
 let _map;
 const infoArray = [];
+const appleSvg = `<svg xmlns="http://www.w3.org/2000/svg" height="25px" viewBox="0 0 384 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license (Commercial License) Copyright 2023 Fonticons, Inc. --><style>svg{fill:#ff8080}</style><path d="M318.7 268.7c-.2-36.7 16.4-64.4 50-84.8-18.8-26.9-47.2-41.7-84.7-44.6-35.5-2.8-74.3 20.7-88.5 20.7-15 0-49.4-19.7-76.4-19.7C63.3 141.2 4 184.8 4 273.5q0 39.3 14.4 81.2c12.8 36.7 59 126.7 107.2 125.2 25.2-.6 43-17.9 75.8-17.9 31.8 0 48.3 17.9 76.4 17.9 48.6-.7 90.4-82.5 102.6-119.3-65.2-30.7-61.7-90-61.7-91.9zm-56.6-164.2c27.3-32.4 24.8-61.9 24-72.5-24.1 1.4-52 16.4-67.9 34.9-17.5 19.8-27.8 44.3-25.6 71.9 26.1 2 49.9-11.4 69.5-34.3z"/></svg>`
+
 let _marker;
 let _addMarker;
 let _positionMarker;
-let _mapStyle = {fillColor: 'rgba(97,162,246,1)', strokeWeight: 1, strokeColor: '#9d9d9d'};
+
+let icon = {
+    url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(appleSvg),
+};
+let _mapStyle = {
+    // icon,
+    visible: false,
+    fillColor: 'rgba(97,162,246,1)',
+    strokeWeight: 1,
+    strokeColor: '#9d9d9d'
+};
 let active = false;
 
 let _clusterMarker;
@@ -11,6 +23,43 @@ let _clusterAdvancedMarker;
 let _basicMarker = [];
 let _advancedMarker = [];
 
+
+function getClusterOption() {
+
+    const renderer = {
+        render: ({count, position}, stats) => {
+            const color = 'red'
+            const svg = window.btoa(`
+                      <svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
+                        <circle cx="120" cy="120" opacity=".8" r="70" />    
+                      </svg>`);
+            
+            return new google.maps.Marker({
+                position,
+                // icon,
+                label: {
+                    text: String(count),
+                    color: "rgba(255,255,255,0.9)",
+                    fontSize: "12px",
+                },
+                // adjust zIndex to be above other markers
+                zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count,
+            });
+        }
+    };
+
+    const algorithm = new markerClusterer.SuperClusterAlgorithm({});
+
+    return {renderer, algorithm}
+}
+
+function getInfoWindow(options) {
+    return new google.maps.InfoWindow({
+        content: "",
+        disableAutoPan: true,
+        ...options
+    });
+}
 
 const SEOUL_BOUND = {
     north: 37.69772544437243,
@@ -47,8 +96,10 @@ function pracFn() {
 
 
         _map.data.addListener("click", e => {
-            setFitBounds({address: e.feature.h.SGG_NM});
-            setGeoJsonStyle(e.feature.h.SGG_NM);
+            if (e.feature.h.SGG_NM) {
+                setFitBounds({address: e.feature.h.SGG_NM});
+                setGeoJsonStyle(e.feature.h.SGG_NM);
+            }
         });
 
         setSearchBox();
@@ -94,13 +145,12 @@ function pracFn() {
                         map: _map,
                         title: p.name,
                         position: p.geometry.location,
+
                     })
                 );
 
                 const info = dynaForm().searchBoxForm(p);
-                const infoWindow = new google.maps.InfoWindow({
-                    content: info,
-                })
+                const infoWindow = getInfoWindow({content: info})
 
                 _positionMarker[idx].addListener('click', e => {
                     infoArray.forEach(e => e?.close());
@@ -128,6 +178,8 @@ function pracFn() {
      * @param style Gejson 스타일
      */
     function setGeoJson(path, style = _mapStyle) {
+        console.log("?111?")
+
         _mapStyle = style;
         _map.data.loadGeoJson(path);
         _map.data.setStyle(style);
@@ -298,7 +350,7 @@ function pracFn() {
 
     function addMarkerByMouse() {
 
-        const infoWindow = new google.maps.InfoWindow({
+        const infoWindow = getInfoWindow({
             content: "",
             disableAutoPan: true,
         });
@@ -361,16 +413,15 @@ function pracFn() {
 
 
     function setBasicMarker() {
+        console.time("basic marker")
         _basicMarker = [];
-        
-        const infoWindow = new google.maps.InfoWindow({
-            content: "",
-            disableAutoPan: true,
-        });
-        
+
+        const infoWindow = getInfoWindow();
+
         cycleData.forEach((e, i) => {
             const marker = new google.maps.Marker({
                 position: {lat: e.lat, lng: e.lng},
+                icon,
                 map: _map,
             });
             marker.addListener("click", () => {
@@ -380,117 +431,79 @@ function pracFn() {
 
             _basicMarker.push(marker);
         });
+        console.timeEnd('basic marker');
     }
 
     function setAdvancedMarker() {
+        console.time("setAdvancedMarker")
         _advancedMarker = [];
-        cycleData.forEach((e,i) => {
+        cycleData.forEach((e, i) => {
             const pinViewScaled = new google.maps.marker.PinView({
-                background : '#589865',
-                borderColor: "#868383",
-                glyphColor: "#d7ffdf",
+                // background: '#589865',s
             });
-            const priceTag = document.createElement('div');
-            priceTag.className = 'price-tag';
-            priceTag.textContent = '';
-            priceTag.style.backgroundColor =  '#4285F4';
-            priceTag.style.borderRadius =  '8px';
-            priceTag.style.color =  '#FFFFFF';
-            priceTag.style.fontSize =  '14px';
-            priceTag.style.padding =  '10px 15px';
-            priceTag.style.position =  'relative';
 
+            const parser = new DOMParser();
+
+            const pinSvg = parser.parseFromString(
+                appleSvg,
+                "image/svg+xml",
+            ).documentElement;
 
             const markerView = new google.maps.marker.AdvancedMarkerView({
-                map : _map,
-                position: { lat: e.lat, lng: e.lng },
+                map: _map,
+                position: {lat: e.lat, lng: e.lng},
                 // content: priceTag,
-                content: pinViewScaled.element,
-                collisionBehavior: google.maps.CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY,
-                draggable: true,
+                // content: pinViewScaled.element,
+                content: pinSvg,
+                // collisionBehavior: google.maps.CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY,
+                // draggable: true,
             });
             _advancedMarker.push(markerView);
         })
+        console.timeEnd("setAdvancedMarker");
     }
 
     function setClusteringAdvancedMarker() {
-        const infoWindow = new google.maps.InfoWindow({
-            content: "",
-            disableAutoPan: true,
-        });
+        console.time('setClusteringAdvancedMarker')
+        const infoWindow = getInfoWindow();
 
         const markers = cycleData.map((e, i) => {
             const pinViewScaled = new google.maps.marker.PinView({
-                background : '#589865',
-                borderColor: "#868383",
-                glyphColor: "#d7ffdf",
+                // background: '#589865',
+                // borderColor: "#868383",
+                // glyphColor: "#d7ffdf",
             });
-            const priceTag = document.createElement('div');
-            priceTag.className = 'price-tag';
-            priceTag.textContent = '';
-            priceTag.style.backgroundColor =  '#4285F4';
-            priceTag.style.borderRadius =  '8px';
-            priceTag.style.color =  '#FFFFFF';
-            priceTag.style.fontSize =  '14px';
-            priceTag.style.padding =  '10px 15px';
-            priceTag.style.position =  'relative';
 
 
-            const marker = new google.maps.marker.AdvancedMarkerView({
-                // map : _map,
-                position: { lat: e.lat, lng: e.lng },
+            const parser = new DOMParser();
+            const pinSvg = parser.parseFromString(
+                appleSvg,
+                "image/svg+xml",
+            ).documentElement;
+
+            return new google.maps.marker.AdvancedMarkerView({
+                position: {lat: e.lat, lng: e.lng},
                 // content: priceTag,
-                content: pinViewScaled.element,
-                collisionBehavior: google.maps.CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY,
-                draggable: true,
+                // content: pinViewScaled.element,
+                content: pinSvg,
+                // collisionBehavior: google.maps.CollisionBehavior.OPTIONAL_AND_HIDES_LOWER_PRIORITY,
+                // draggable: true,
             });
-
-            return marker;
         });
 
-        const renderer = {
-            render: ({count, position}, stats) => {
-                // use d3-interpolateRgb to interpolate between red and blue
-                const color = 'red'
-                // create svg url with fill color
-                const svg = window.btoa(`
-                      <svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
-                        <circle cx="120" cy="120" opacity=".8" r="70" />    
-                      </svg>`);
-                // create marker using svg icon
-                return new google.maps.Marker({
-                    position,
-                    icon: {
-                        url: `data:image/svg+xml;base64,${svg}`,
-                        scaledSize: new google.maps.Size(75, 75),
-                    },
-                    label: {
-                        text: String(count),
-                        color: "rgba(255,255,255,0.9)",
-                        fontSize: "12px",
-                    },
-                    // adjust zIndex to be above other markers
-                    zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count,
-                });
-            }
-        };
 
-        const algorithm = new markerClusterer.GridAlgorithm({});
-
-        _clusterAdvancedMarker = new markerClusterer.MarkerClusterer({map: _map, markers,renderer, algorithm});
-
+        _clusterAdvancedMarker = new markerClusterer.MarkerClusterer({map: _map, markers, ...getClusterOption()});
+        console.timeEnd('setClusteringAdvancedMarker')
     }
 
     function setClusteringMarker() {
-
-        const infoWindow = new google.maps.InfoWindow({
-            content: "",
-            disableAutoPan: true,
-        });
-
+        console.time('setClusteringMarker');
+        const infoWindow = getInfoWindow();
+        
         const markers = cycleData.map((e, i) => {
             const marker = new google.maps.Marker({
                 position: {lat: e.lat, lng: e.lng},
+                icon
             });
 
             marker.addListener("click", () => {
@@ -501,40 +514,59 @@ function pracFn() {
         });
 
 
-        const renderer = {
-            render: ({count, position}, stats) => {
-                // use d3-interpolateRgb to interpolate between red and blue
-                const color = 'red'
-                // create svg url with fill color
-                const svg = window.btoa(`
-                      <svg fill="${color}" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240">
-                        <circle cx="120" cy="120" opacity=".8" r="70" />    
-                      </svg>`);
-                // create marker using svg icon
-                return new google.maps.Marker({
-                    position,
-                    icon: {
-                        url: `data:image/svg+xml;base64,${svg}`,
-                        scaledSize: new google.maps.Size(75, 75),
-                    },
-                    label: {
-                        text: String(count),
-                        color: "rgba(255,255,255,0.9)",
-                        fontSize: "12px",
-                    },
-                    // adjust zIndex to be above other markers
-                    zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count,
-                });
-            }
-        };
+        _clusterMarker = new markerClusterer.MarkerClusterer({map: _map, markers, ...getClusterOption()});
 
-        const algorithm = new markerClusterer.GridAlgorithm({});
-
-        _clusterMarker = new markerClusterer.MarkerClusterer({map: _map, markers, renderer, algorithm});
-
+        console.timeEnd('setClusteringMarker');
     }
 
+    function setDataLayer() {
+        console.time("setDataLayer")
+        
+        
+        _map.data.loadGeoJson('./data/geoData/cycleRent.geojson');
+        _map.data.setStyle({
+            // visible: false,
+            // icon
+        })
+        
+        //     _map.data.loadGeoJson('./data/geoData/cycleRent.geojson', null, (features) => {
+        //
+        //     let markers = features.map((feature) => {
+        //         const lat = feature.getGeometry().g.lat();
+        //         const lng = feature.getGeometry().g.lng();
+        //
+        //         return new google.maps.Marker({position: {lat, lng}, icon});
+        //     });
+        //
+        //     new markerClusterer.MarkerClusterer({map: _map, markers, ...getClusterOption()});
+        // });
+        
 
+        console.timeEnd("setDataLayer")
+    }
+
+    function setDataLayerClustering() {
+
+        console.time("setDataLayerClustering")
+        _map.data.setStyle({
+            visible: false,
+            // icon
+        })
+        _map.data.loadGeoJson('./data/geoData/cycleRent.geojson', null, (features) => {
+
+            let markers = features.map((feature) => {
+                const lat = feature.getGeometry().g.lat();
+                const lng = feature.getGeometry().g.lng();
+
+                return new google.maps.Marker({position: {lat, lng}});
+            });
+
+            new markerClusterer.MarkerClusterer({map: _map, markers, ...getClusterOption().algorithm});
+        });
+
+        console.timeEnd("setDataLayerClustering")
+
+    }
     return {
         initMap() {
             initMap();
@@ -577,6 +609,12 @@ function pracFn() {
         },
         setClusteringAdvancedMarker() {
             setClusteringAdvancedMarker();
+        },
+        setDataLayer() {
+            setDataLayer();
+        },
+        setDataLayerClustering() {
+            setDataLayerClustering();
         },
     };
 }
